@@ -122,7 +122,6 @@ function fetchFromFile():void{
                 return
             } 
             ENZYMES = JSON.parse(fileContent.toString());   
-            console.log(chalk.cyan(ENZYMES))
         })
     }
 }
