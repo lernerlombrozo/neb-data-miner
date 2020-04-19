@@ -1,14 +1,20 @@
-
-
-import chalk from 'chalk';
-import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 import config from 'config';
+import axios from 'axios';
+import chalk from 'chalk';
+import { setFlagsFromString } from 'v8';
 
 let BaseUrl:string = config.get('originURL');
 let TableUrl:string = config.get('tableURL');
 
 export let ENZYMES :Enzyme [] = [];
 export async function getEnzymesHTML(){
+    if(!config.get("getEnzymes")){
+        console.log(chalk.yellow("you selected not to load the enzymes"));
+        fetchFromFile();
+        return
+    };
     try {
         console.log(chalk.cyan("Getting enzyme list"));
         const { data } = await axios.get(BaseUrl + TableUrl)
@@ -23,7 +29,8 @@ export async function getEnzymesHTML(){
             let enzyme = extractAllData(data,recognitionSequences[i]);
             enzymes.push(enzyme)
         }
-        ENZYMES= enzymes;
+        ENZYMES = enzymes;
+        saveFile();
     } catch (error) {
         console.error(error);
     }
@@ -95,4 +102,27 @@ export class Enzyme{
         public neoschizomers:string | string[],
         public isoschizomers:string | string[]
         ){}
+}
+
+function saveFile():void{
+    if(process.mainModule && process.mainModule.filename){
+        const enzymesFile = path.join(/* path.dirname(process.mainModule.filename), */'data','enzymes.json');   
+        fs.writeFile(enzymesFile, JSON.stringify(ENZYMES),(err)=>{
+            console.error(chalk.red(err));
+        });
+    }
+}
+
+function fetchFromFile():void{
+    if(process.mainModule && process.mainModule.filename){
+        const enzymesFile = path.join(/* path.dirname(process.mainModule.filename), */'data','enzymes.json');   
+        fs.readFile(enzymesFile,(err,fileContent)=>{
+            if(err){
+                console.log(chalk.red("You haven't loaded the enzymes, please change getEnzymes to true in config file."));
+                return
+            } 
+            ENZYMES = JSON.parse(fileContent.toString());   
+            console.log(chalk.cyan(ENZYMES))
+        })
+    }
 }

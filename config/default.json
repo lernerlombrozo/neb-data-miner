@@ -1,4 +1,7 @@
 {
     "originURL":"http://nc2.neb.com/NEBcutter2/",
-    "tableURL":"sitelist.php?name=c4a7bb75-"
+    "tableURL":"sitelist.php?name=c4a7bb75-",
+    "author":"David Lerner",
+    "getEnzymes": true,
+    "title":"Assignment 2"
 }
