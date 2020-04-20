@@ -3,7 +3,6 @@ import path from 'path';
 import config from 'config';
 import axios from 'axios';
 import chalk from 'chalk';
-import { setFlagsFromString } from 'v8';
 
 let BaseUrl:string = config.get('originURL');
 let TableUrl:string = config.get('tableURL');
@@ -16,17 +15,18 @@ export async function getEnzymesHTML(){
         return
     };
     try {
-        console.log(chalk.cyan("Getting enzyme list"));
+        console.log(chalk.cyan(`Getting enzyme list from ${BaseUrl + TableUrl}`));
         const { data } = await axios.get(BaseUrl + TableUrl)
         const table = extractOne('<blockquote>','</blockquote>',data).occurrence;
         const urls = extractAll('href="', '" style="text-decoration:none;',table);
         const recognitionSequences = extractAll('</a> ','\n',table);
+        const locations = extractAll('\n    ','<a href="',table)
         let enzymes: Enzyme[] = [];
         let enzymeAmount = urls.length;
         for (let i = 0; i<enzymeAmount; i++) {
             console.log(chalk.cyan("got enzyme "+ (i+1) + " of " + enzymeAmount + " ("+ ((i+1)/enzymeAmount*100).toFixed(2)+"%)"))
             const { data } = await axios.get(BaseUrl + urls[i]);
-            let enzyme = extractAllData(data,recognitionSequences[i]);
+            let enzyme = extractAllData(data,recognitionSequences[i],locations[i]);
             enzymes.push(enzyme)
         }
         ENZYMES = enzymes;
@@ -76,7 +76,7 @@ function extractOne(start:string, end:string, html:string, getRemain = false):{o
     }
 }
 
-function extractAllData(html:string, sequence:string): Enzyme {
+function extractAllData(html:string, sequence:string, location:string): Enzyme {
     html = extractOne('<body', '</body>',html).occurrence;
     let name = extractOne('<font size="+2"><b>','</b></font>',html,true);
     html = name.html;
@@ -89,7 +89,7 @@ function extractAllData(html:string, sequence:string): Enzyme {
     let ends = extractOne('</b><br><br>','</td>\n<td valign=top>', html, true);
     html =ends.html   
 
-    return new Enzyme(name.occurrence, ends.occurrence, sequence, temperature.occurrence, neoschizomers, isoschizomers);
+    return new Enzyme(name.occurrence, ends.occurrence, sequence, temperature.occurrence, neoschizomers, isoschizomers, location);
 
 }
 
@@ -100,7 +100,8 @@ export class Enzyme{
         public sequence:string,
         public temperature:string,
         public neoschizomers:string | string[],
-        public isoschizomers:string | string[]
+        public isoschizomers:string | string[],
+        public location:string
         ){}
 }
 
@@ -108,7 +109,7 @@ function saveFile():void{
     if(process.mainModule && process.mainModule.filename){
         const enzymesFile = path.join(/* path.dirname(process.mainModule.filename), */'data','enzymes.json');   
         fs.writeFile(enzymesFile, JSON.stringify(ENZYMES),(err)=>{
-            console.error(chalk.red(err));
+            if(err)console.error(chalk.red(err));
         });
     }
 }

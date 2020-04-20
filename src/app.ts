@@ -5,8 +5,11 @@ import todoRoutes from './routes/todos';
 import enzymesRoutes from './routes/enzymes';
 
 import { getEnzymesHTML } from './neb-data-miner';
+import * as translator from './translator';
 
 getEnzymesHTML();
+
+translator.doEverything();
 
 const app = express();
 
